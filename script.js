@@ -4,7 +4,7 @@ const forecastApiUrl = "https://api.openweathermap.org/data/2.5/forecast"; // 5-
 const airQualityUrl = "https://api.openweathermap.org/data/2.5/air_pollution";
 
 // ✅ Fetch Weather Data
-function getWeather(city = "Bengaluru") {
+function getWeather(city=document.getElementById("cityInput").value) {
     const url = `${weatherApiUrl}?q=${city}&units=metric&appid=${apiKey}`;
 
     fetch(url)
@@ -140,6 +140,12 @@ getLiveLocation();
 
 // ✅ Search Weather on Enter Key Press
 document.getElementById("cityInput").addEventListener("keypress", function(event) {
+    if (event.key === "Enter") {
+        getWeather(document.getElementById("cityInput").value);
+    }
+});
+
+document.getElementById("cityInput").addEventListener("onclick", function(event) {
     if (event.key === "Enter") {
         getWeather(document.getElementById("cityInput").value);
     }
