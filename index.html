@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Header with Search Bar -->
+    <header>
+        <h1>Weather App</h1>
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Enter city name">
+            <button onclick="getWeather()">Search</button>
+        </div>
+    </header>
+    <section>
+        <h1 id="city-name" style="padding: 10px;">City Name</h1>
+     </section>
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Temperature Card -->
+        
+        <div class="card temperature-card">
+            <h2>Temperature</h2>
+           
+            <img id="weather-icon" src="#" alt="Weather Icon">
+            <p id="temperature">Temperature: --°C</p>
+            <p id="feels-like">Feels Like: --°C</p>
+            <p id="weather-condition">Condition: --</p>
+            <p id="humidity">Humidity: --%</p>
+            <p id="wind-speed">Wind Speed: -- m/s</p>
+            <p id="visibility">Visibility: -- km</p>
+            <p id="sunrise">Sunrise: --</p>
+            <p id="sunset">Sunset: --</p>
+        </div>
+
+        <!-- Air Quality Card -->
+        <div class="card air-quality-card" >
+            <h2 style="padding: 8px;">Air Quality</h2>
+            <p style="padding: 8px;" id="aqi">AQI: --</p>
+            <p id="pm10" style="padding: 8px;">PM10: -- µg/m³</p>
+            <p id="pm25" style="padding: 8px;">PM2.5: -- µg/m³</p>
+            <p id="co" style="padding: 8px;">CO: -- ppm</p>
+        </div>
+    </div>
+
+    <!-- Hourly Forecast -->
+    <div class="hourly-forecast">
+        <h2>Hourly Forecast</h2>
+        <div class="hourly-container" id="hourlyContainer">
+            <!-- Hourly forecast data will be inserted here via JavaScript -->
+        </div>
+    </div>
+
+    <!-- Weekly Forecast -->
+    <div class="weekly-forecast">
+        <h2>7-Day Forecast</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Condition</th>
+                    <th>Temp (°C)</th>
+                    <th>Humidity (%)</th>
+                </tr>
+            </thead>
+            <tbody id="weeklyContainer">
+                <!-- Weekly forecast data will be inserted here via JavaScript -->
+            </tbody>
+        </table>
+        <div class="history-data">
+            <h2>7-Day Weather History</h2>
+            <div id="history-data">
+                <!-- Historical weather data will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+   
+    
+
+    <script src="script.js"></script>
+</body>
+</html>     
