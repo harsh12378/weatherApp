@@ -1,173 +1,162 @@
-function getWeather(city = "Bengaluru") {  
-    const xhr = new XMLHttpRequest();
-    xhr.withCredentials = true;
+const apiKey = "5b4567cb2f16c6684716922a53f3a1b3"; // OpenWeather API Key
+const weatherApiUrl = "https://api.openweathermap.org/data/2.5/weather"; // Current weather
+const forecastApiUrl = "https://api.openweathermap.org/data/2.5/forecast"; // 5-day forecast
+const airQualityUrl = "https://api.openweathermap.org/data/2.5/air_pollution";
 
-    xhr.addEventListener("readystatechange", function () {
-        if (this.readyState === this.DONE) {
-            try {  
-                const response = JSON.parse(this.responseText);
+// ✅ Fetch Weather Data
+function getWeather(city = "Bengaluru") {
+    const url = `${weatherApiUrl}?q=${city}&units=metric&appid=${apiKey}`;
 
-                // ✅ Update UI with current weather details
-                document.getElementById("city-name").innerText = `Location - ${response.location.name}`;
-                document.getElementById("temperature").innerText = `Temperature: ${response.current.temp_c}°C`;
-                document.getElementById("feels-like").innerText = `Feels Like: ${response.current.feelslike_c}°C`;
-                document.getElementById("weather-condition").innerText = `Condition: ${response.current.condition.text}`;
-                document.getElementById("humidity").innerText = `Humidity: ${response.current.humidity}%`;
-                document.getElementById("wind-speed").innerText = `Wind Speed: ${response.current.wind_kph} km/h`;
-                document.getElementById("visibility").innerText = `Visibility: ${response.current.vis_km} km`;
-                document.getElementById("sunrise").innerText = `Sunrise: ${response.forecast.forecastday[0].astro.sunrise}`;
-                document.getElementById("sunset").innerText = `Sunset: ${response.forecast.forecastday[0].astro.sunset}`;
-                document.getElementById("weather-icon").src = response.current.condition.icon;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            updateWeatherUI(data);
+            getAirQuality(data.coord.lat, data.coord.lon);
+            getForecast(city); // Fetch 5-day forecast
+        })
+        .catch(error => console.error("Weather API Error:", error));
+}
 
-                // ✅ Get Air Quality Data (AQI, PM10, PM2.5, CO)
-                if (response.current.air_quality) {
-                    document.getElementById("aqi").innerText = `AQI: ${response.current.air_quality["us-epa-index"] || "N/A"}`;
-                    document.getElementById("pm10").innerText = `PM10: ${response.current.air_quality["pm10"] || "N/A"} µg/m³`;
-                    document.getElementById("pm25").innerText = `PM2.5: ${response.current.air_quality["pm2_5"] || "N/A"} µg/m³`;
-                    document.getElementById("co").innerText = `CO: ${response.current.air_quality["co"] || "N/A"} ppm`;
-                }
+// ✅ Fetch 5-Day Forecast
+function getForecast(city) {
+    const url = `${forecastApiUrl}?q=${city}&units=metric&appid=${apiKey}`;
 
-                // ✅ Fetch Hourly Forecast & Weekly Forecast
-                updateHourlyForecast(response.forecast.forecastday[0].hour);
-                updateWeeklyForecast(response.forecast.forecastday);
+    fetch(url)
+        .then(response => response.json())
+        .then(data => updateForecastUI(data))
+        .catch(error => console.error("Forecast API Error:", error));
+}
 
-                // ✅ Fetch 7-day historical weather
-                getHistoricalWeather(city);
+// ✅ Update UI with Current Weather
+function updateWeatherUI(data) {
+    const sunset = new Date(data.sys.sunset * 1000).toLocaleTimeString();
+    const sunrise = new Date(data.sys.sunrise * 1000).toLocaleTimeString();
+    //const feelsLike = new (data.main.feels_like).toLocaleTimeString();
+    
+    document.getElementById("city-name").innerText = `Location - ${data.name}`;
+    document.getElementById("temperature").innerText = `Temperature: ${data.main.temp}°C`;
+    document.getElementById("weather-condition").innerText = `Condition: ${data.weather[0].description}`;
+    document.getElementById("humidity").innerText = `Humidity: ${data.main.humidity}%`;
+    document.getElementById("wind-speed").innerText = `Wind Speed: ${data.wind.speed} km/h`;
+    document.getElementById("visibility").innerText = `Visibility: ${(data.visibility / 1000).toFixed(1)} km`;
+    document.getElementById("sunrise").innerText = `Sunrise: ${sunrise}`;
+    document.getElementById("sunset").innerText = `Sunset: ${sunset}`;
+    document.getElementById("feels-like").innerText = `Feels Like: ${data.main.feels_like}°C`;
+    document.getElementById("weather-icon").src = `https://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
+}
 
-            } catch (error) {
-                console.error("Error parsing JSON:", error);
-            }
+// ✅ Update UI with Air Quality Data
+function getAirQuality(lat, lon) {
+    const url = `${airQualityUrl}?lat=${lat}&lon=${lon}&appid=${apiKey}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => updateAirQualityUI(data))
+        .catch(error => console.error("Air Quality API Error:", error));
+}
+
+function updateAirQualityUI(data) {
+    if (!data.list || data.list.length === 0) return;
+
+    const airData = data.list[0].components;
+
+    document.getElementById("aqi").innerText = `AQI: ${data.list[0].main.aqi}`;
+    document.getElementById("pm10").innerText = `PM10: ${airData.pm10} µg/m³`;
+    document.getElementById("pm25").innerText = `PM2.5: ${airData.pm2_5} µg/m³`;
+    document.getElementById("co").innerText = `CO: ${airData.co} ppm`;
+}
+
+// ✅ Extract and Display 5-Day Forecast
+function updateForecastUI(data) {
+    const dailyForecast = {}; // Store forecast summary by date
+
+    data.list.forEach(item => {
+        const date = item.dt_txt.split(" ")[0]; // Extract date (YYYY-MM-DD)
+        if (!dailyForecast[date]) {
+            dailyForecast[date] = {
+                temp_min: item.main.temp_min,
+                temp_max: item.main.temp_max,
+                condition: item.weather[0].description,
+                icon: item.weather[0].icon
+            };
+        } else {
+            dailyForecast[date].temp_min = Math.min(dailyForecast[date].temp_min, item.main.temp_min);
+            dailyForecast[date].temp_max = Math.max(dailyForecast[date].temp_max, item.main.temp_max);
         }
     });
 
-    // ✅ Fetch weather with AQI enabled
-    xhr.open("GET", `https://weatherapi-com.p.rapidapi.com/forecast.json?q=${city}&days=7&aqi=yes&alerts=no`);
-    xhr.setRequestHeader("x-rapidapi-key", "e975bc1bdbmsh98d916ba276841cp139410jsn788f3affa88c");
-    xhr.setRequestHeader("x-rapidapi-host", "weatherapi-com.p.rapidapi.com");
+    // Convert to array and limit to 5 days
+    const forecastArray = Object.entries(dailyForecast).slice(0, 5);
 
-    xhr.send();
-
-
-// ✅ Update Hourly Forecast
-function updateHourlyForecast(hourlyData) {
-    const hourlyContainer = document.getElementById("hourlyContainer");
-    hourlyContainer.innerHTML = ""; // Clear previous data
-
-    hourlyData.forEach(hour => {
-        const hourBlock = document.createElement("div");
-        hourBlock.classList.add("hour-block");
-        hourBlock.innerHTML = `
-            <p><strong>${hour.time.split(" ")[1]}</strong></p>
-            <img src="${hour.condition.icon}" alt="weather-icon">
-            <p>${hour.temp_c}°C</p>
-        `;
-        hourlyContainer.appendChild(hourBlock);
+    let forecastHTML = `<h2>5 Day Forecast</h2>`;
+    forecastArray.forEach(([date, details]) => {
+        forecastHTML += `
+            <div class="forecast-day">
+                <p><strong>${date}</strong></p>
+                <img src="https://openweathermap.org/img/wn/${details.icon}.png" alt="Weather Icon">
+                <p>Condition: ${details.condition}</p>
+                <p>Min: ${details.temp_min.toFixed(1)}°C | Max: ${details.temp_max.toFixed(1)}°C</p>
+            </div>`;
     });
+
+    document.getElementById("forecast").innerHTML = forecastHTML;
 }
 
-// ✅ Update Weekly Forecast
-function updateWeeklyForecast(weeklyData) {
-    const weeklyContainer = document.getElementById("weeklyContainer");
-    weeklyContainer.innerHTML = ""; // Clear previous data
-
-    weeklyData.forEach(day => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${day.date}</td>
-            <td><img src="${day.day.condition.icon}" alt="weather-icon"> ${day.day.condition.text}</td>
-            <td>${day.day.avgtemp_c}°C</td>
-            <td>${day.day.avghumidity}%</td>
-        `;
-        weeklyContainer.appendChild(row);
-    });
-}
-
-
-xhr.open("GET", `https://weatherapi-com.p.rapidapi.com/history.json?q=${city}&dt=${dateStr}`);
-xhr.setRequestHeader("x-rapidapi-key", "e975bc1bdbmsh98d916ba276841cp139410jsn788f3affa88c");
-xhr.setRequestHeader("x-rapidapi-host", "weatherapi-com.p.rapidapi.com");
-xhr.send();
-
-
-function getHistoricalWeather(city) {
-    const today = new Date();
-    let historyHTML = "<h3>Past 7 Days Weather</h3>";
-    let completedRequests = 0; // Track the number of completed requests
-
-    for (let i = 1; i <= 7; i++) {
-        const pastDate = new Date();
-        pastDate.setDate(today.getDate() - i);
-        const dateStr = pastDate.toISOString().split("T")[0]; // Format: YYYY-MM-DD
-        
-        const xhr = new XMLHttpRequest();
-        const apiKey = "YOUR_API_KEY"; // Replace with your actual API key
-        const url = `https://api.weatherapi.com/v1/history.json?key=${apiKey}&q=${city}&dt=${dateStr}`;
-        
-        xhr.open("GET", url, true);
-        xhr.withCredentials = true;
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4) { // DONE
-                completedRequests++;
-                if (xhr.status === 200) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-
-                        if (response.forecast && response.forecast.forecastday.length > 0) {
-                            const data = response.forecast.forecastday[0];
-                            historyHTML += `
-                                <p><strong>${data.date}:</strong> ${data.day.avgtemp_c}°C, ${data.day.condition.text}</p>
-                            `;
-                        }
-                    } catch (error) {
-                        console.error(`Error parsing historical data for ${dateStr}:`, error);
-                    }
-                } else {
-                    console.error(`Request failed for ${dateStr} with status: ${xhr.status}`);
-                }
-
-                // Only update UI after all requests are completed
-                if (completedRequests === 7) {
-                    document.getElementById("history-data").innerHTML = historyHTML;
-                }
-            }
-        };
-
-        xhr.send();
-    }
-}
-
-
-// ✅ Get User's Live Location and Fetch Weather
+// ✅ Fetch Weather Based on User's Location
 function getLiveLocation() {
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                console.log(`User Location: ${lat}, ${lon}`);
-
-                // Fetch weather using latitude & longitude
-                getWeather(`${lat},${lon}`);
+                getWeatherByCoordinates(lat, lon);
             },
             (error) => {
-                console.error("Geolocation Error:", error);
                 alert("Location access denied. Showing default weather.");
-                getWeather();  // Fetch weather for default city
+                getWeather();
             }
         );
     } else {
-        alert("Geolocation is not supported by your browser.");
-        getWeather(); // Fetch weather for default city
+        getWeather();
     }
 }
 
-// ✅ Call the function on page load
+// ✅ Fetch Weather Using Latitude & Longitude
+function getWeatherByCoordinates(lat, lon) {
+    const url = `${weatherApiUrl}?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            updateWeatherUI(data);
+            getAirQuality(lat, lon);
+            getForecast(data.name);
+        })
+        .catch(error => console.error("Weather API Error:", error));
+}
+
+// ✅ Fetch weather on page load
 getLiveLocation();
+
+// ✅ Search Weather on Enter Key Press
 document.getElementById("cityInput").addEventListener("keypress", function(event) {
-    if (event.key === "Enter") {  // Check if "Enter" key is pressed
+    if (event.key === "Enter") {
         getWeather(document.getElementById("cityInput").value);
     }
 });
 
-}
+document.addEventListener("DOMContentLoaded", function () {
+    let title = "Weather App";
+    let index = 0;
+    let speed = 150; // Adjust speed of typing (lower = faster)
+
+    function typeEffect() {
+        if (index < title.length) {
+            document.getElementById("header-title").innerHTML += title.charAt(index);
+            index++;
+            setTimeout(typeEffect, speed);
+        }
+    }
+
+    typeEffect(); // Start the animation when the page loads
+});
