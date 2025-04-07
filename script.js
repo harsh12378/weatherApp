@@ -164,5 +164,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    typeEffect(); // Start the animation when the page loads
+    typeEffect();
+    getLiveLocation();// Start the animation when the page loads
 });
